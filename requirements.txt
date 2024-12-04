@@ -1,4 +1,6 @@
-openai
+openai==0.28
 streamlit
 pandas
 xlsxwriter
+python-dotenv
+openpyxl
