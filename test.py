@@ -100,59 +100,57 @@ st.write("**Quick Prompts for Pharma Insights**")
 col1, col2, col3 = st.columns(3)
 
 # Initialize prompt to None
-prompt = st.session_state.get("prompt", "")
+prompt = None
 
 with col1:
     if st.button("What are Genentech's top therapeutic areas?"):
         prompt = "What are Genentech's top therapeutic areas?"
-        st.session_state.prompt = prompt
 with col2:
     if st.button("How is Genentech involved in drug safety initiatives?"):
         prompt = "How is Genentech involved in drug safety initiatives?"
-        st.session_state.prompt = prompt
 with col3:
     if st.button("What is Roche's focus in therapeutic research?"):
         prompt = "What is Roche's focus in therapeutic research?"
-        st.session_state.prompt = prompt
 
 col4, col5, col6 = st.columns(3)
 with col4:
     if st.button("Does Roche collaborate on oncology research?"):
         prompt = "Does Roche collaborate on oncology research?"
-        st.session_state.prompt = prompt
 with col5:
     if st.button("What leadership opportunities does Roche offer in pharma?"):
         prompt = "What leadership opportunities does Roche offer in pharma?"
-        st.session_state.prompt = prompt
 with col6:
     if st.button("Who are the leading experts at Genentech?"):
         prompt = "Who are the leading experts at Genentech?"
-        st.session_state.prompt = prompt
 
 # Always show the chat input, allowing for further input even if a prompt is selected
 user_input = st.chat_input("Ask a question or select a prompt...")
 
-# Use the session state to maintain the current prompt or user input
-if user_input:
-    prompt = user_input
-    st.session_state.prompt = prompt
-
 # Initialize session state for chat history
 if "messages" not in st.session_state:
-    st.session_state["messages"] = [{"role": "assistant", "content": "How can I help you with pharma insights?"}] 
+    st.session_state["messages"] = [{"role": "assistant", "content": "How can I help you with pharma insights?"}]
 
-# Process the prompt if it has content
-if prompt:
-    st.session_state.messages.append({"role": "user", "content": prompt})
-    st.chat_message("user").write(prompt)
+# Append user input or prompt to chat history
+if prompt or user_input:
+    user_message = prompt if prompt else user_input
+    st.session_state["messages"].append({"role": "user", "content": user_message})
 
-    # Query OpenAI API with the selected or input prompt
-    response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
-        messages=st.session_state.messages
-    )
+    # Query OpenAI API with the current messages
+    with st.spinner("Generating response..."):
+        try:
+            response = openai.ChatCompletion.create(
+                model="gpt-3.5-turbo",
+                messages=st.session_state["messages"]
+            )
+            bot_reply = response.choices[0].message.content
+            st.session_state["messages"].append({"role": "assistant", "content": bot_reply})
+        except Exception as e:
+            bot_reply = f"Error retrieving response: {e}"
+            st.session_state["messages"].append({"role": "assistant", "content": bot_reply})
 
-    # Display the response from OpenAI in chat history
-    msg = response.choices[0].message.content
-    st.session_state.messages.append({"role": "assistant", "content": msg})
-    st.chat_message("assistant").write(msg)
+# Display chat history sequentially
+for msg in st.session_state["messages"]:
+    if msg["role"] == "user":
+        st.chat_message("user").write(msg["content"])
+    elif msg["role"] == "assistant":
+        st.chat_message("assistant").write(msg["content"])
